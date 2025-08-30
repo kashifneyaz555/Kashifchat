@@ -25,8 +25,8 @@
 
     socket.on("receive_message", data => {
       const msg = document.createElement("div");
-      msg.dataset.id = Date.now().toString(); // Unique ID for deletion
-      msg.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
+      msg.dataset.id = data.id;
+      msg.innerHTML = `<strong>${data.username}</strong> <span style="font-size: 0.8em; color: #ccc;">[${data.timestamp}]</span>: ${data.message}`;
 
       if (data.username === "{{ username }}") {
         const delBtn = document.createElement("button");

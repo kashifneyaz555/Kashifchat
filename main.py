@@ -3,6 +3,8 @@ from flask_socketio import SocketIO, emit
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import os
+import uuid
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default_secret")
@@ -74,9 +76,13 @@ def logout():
 
 @socketio.on("send_message")
 def handle_message(data):
+    message_id = str(uuid.uuid4())
+    timestamp = datetime.now().strftime("%H:%M")
     emit("receive_message", {
+        "id": message_id,
         "username": session.get("username", "Anonymous"),
-        "message": data["message"]
+        "message": data["message"],
+        "timestamp": timestamp
     }, broadcast=True)
 
 @socketio.on("delete_message")
