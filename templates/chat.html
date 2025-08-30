@@ -6,10 +6,20 @@
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
+  <div class="header">
+    <img src="/static/default-avatar.png" class="header-avatar">
+    <div class="header-info">
+      <h2>KashifChat</h2>
+      <p class="status-text">Online</p>
+    </div>
+    <label class="dark-toggle">
+      🌙 <input type="checkbox" id="dark-mode-toggle">
+    </label>
+  </div>
+
   <div class="container">
-    <h2>Welcome, {{ username }}</h2>
     <div id="chat-box"></div>
-    <div id="typing-indicator" style="margin-top: 10px; font-style: italic;"></div>
+    <div id="typing-indicator" class="typing-indicator"></div>
 
     <input type="text" id="message" placeholder="Type your message...">
     <button onclick="sendMessage()">Send</button>
@@ -25,34 +35,52 @@
     const notify = document.getElementById("notify");
     const typingIndicator = document.getElementById("typing-indicator");
 
-    // Request notification permission
+    // Dark mode toggle
+    const toggle = document.getElementById("dark-mode-toggle");
+    if (localStorage.getItem("darkMode") === "true") {
+      document.body.classList.add("dark");
+      toggle.checked = true;
+    }
+    toggle.addEventListener("change", () => {
+      document.body.classList.toggle("dark");
+      localStorage.setItem("darkMode", toggle.checked);
+    });
+
     if ("Notification" in window && Notification.permission !== "granted") {
       Notification.requestPermission();
     }
 
     socket.on("receive_message", data => {
       const msg = document.createElement("div");
+      msg.classList.add("chat-message", data.username === "{{ username }}" ? "me" : "them");
       msg.dataset.id = data.id;
 
       msg.innerHTML = `
-        <img src="/static/default-avatar.png" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:5px;">
-        <strong>${data.username}</strong>
-        <span style="font-size: 0.8em; color: #ccc;">[${data.timestamp}]</span>:
-        <span class="msg-text">${data.message}</span>
-        <span class="status" style="font-size: 0.8em; color: gray;"> ✅</span>
+        <div class="bubble">
+          <span class="msg-text">${data.message}</span>
+          <span class="timestamp">${data.timestamp}</span>
+          <span class="status">✅</span>
+          <div class="reactions">
+            <button onclick="react('${data.id}', '👍')">👍</button>
+            <button onclick="react('${data.id}', '❤️')">❤️</button>
+            <button onclick="react('${data.id}', '😂')">😂</button>
+            <button onclick="react('${data.id}', '😮')">😮</button>
+            <button onclick="react('${data.id}', '😢')">😢</button>
+          </div>
+        </div>
       `;
 
       if (data.username === "{{ username }}") {
         const delBtn = document.createElement("button");
         delBtn.textContent = "🗑️";
-        delBtn.style.marginLeft = "10px";
+        delBtn.className = "action-btn";
         delBtn.onclick = () => {
           socket.emit("delete_message", { id: msg.dataset.id });
         };
 
         const editBtn = document.createElement("button");
         editBtn.textContent = "✏️";
-        editBtn.style.marginLeft = "5px";
+        editBtn.className = "action-btn";
         editBtn.onclick = () => {
           const newText = prompt("Edit your message:", msg.querySelector(".msg-text").textContent);
           if (newText) {
@@ -60,21 +88,20 @@
           }
         };
 
-        msg.appendChild(delBtn);
-        msg.appendChild(editBtn);
+        msg.querySelector(".bubble").appendChild(editBtn);
+        msg.querySelector(".bubble").appendChild(delBtn);
       }
 
+      msg.classList.add("fade-in");
       chatBox.appendChild(msg);
       chatBox.scrollTop = chatBox.scrollHeight;
       notify.currentTime = 0;
       notify.play().catch(() => {});
 
-      // Trigger push notification
       if (Notification.permission === "granted" && data.username !== "{{ username }}") {
         new Notification("New message from " + data.username, { body: data.message });
       }
 
-      // Mark as seen
       socket.emit("message_seen", { id: data.id });
     });
 
@@ -94,19 +121,22 @@
       const msg = document.querySelector(`[data-id="${data.id}"]`);
       if (msg) {
         const status = msg.querySelector(".status");
-        if (status) status.textContent = " ✅✅";
+        if (status) status.textContent = "✅✅";
+        status.classList.add("seen");
       }
     });
 
     socket.on("receive_audio", data => {
       const msg = document.createElement("div");
+      msg.classList.add("chat-message", data.username === "{{ username }}" ? "me" : "them");
       msg.dataset.id = data.id;
       msg.innerHTML = `
-        <img src="/static/default-avatar.png" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:5px;">
-        <strong>${data.username}</strong>
-        <span style="font-size: 0.8em; color: #ccc;">[${data.timestamp}]</span>:
-        <audio controls src="${data.audio_data}" style="margin-left:10px;"></audio>
+        <div class="bubble">
+          <audio controls src="${data.audio_data}"></audio>
+          <span class="timestamp">${data.timestamp}</span>
+        </div>
       `;
+      msg.classList.add("fade-in");
       chatBox.appendChild(msg);
       chatBox.scrollTop = chatBox.scrollHeight;
     });
@@ -139,6 +169,17 @@
       if (message) {
         socket.emit("send_message", { message });
         input.value = "";
+      }
+    }
+
+    function react(id, emoji) {
+      const msg = document.querySelector(`[data-id="${id}"]`);
+      if (msg) {
+        const bubble = msg.querySelector(".bubble");
+        const reaction = document.createElement("span");
+        reaction.textContent = emoji;
+        reaction.className = "reaction";
+        bubble.appendChild(reaction);
       }
     }
   </script>
