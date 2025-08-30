@@ -1,3 +1,104 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #d0e7ff; /* Light blue background */
+  color: black;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+body.dark {
+  background: #000000; /* Full black background in dark mode */
+  color: #e0e0e0;
+}
+
+.container {
+  max-width: 600px;
+  margin: 80px auto 50px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+input, button {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: none;
+  border-radius: 5px;
+}
+
+button {
+  background-color: #ff4e50;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #ff6e70;
+}
+
+.header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  max-width: 600px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  z-index: 10;
+}
+
+.header-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.header-info {
+  flex-grow: 1;
+  margin-left: 10px;
+}
+
+.status-text {
+  font-size: 0.8em;
+  color: #ccc;
+}
+
+.dark-toggle {
+  font-size: 1.2em;
+  cursor: pointer;
+}
+
+#chat-box {
+  height: 300px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}
+
+/* Chat message bubbles */
+.chat-message {
+  display: flex;
+  margin-bottom: 12px;
+  animation: fadeIn 0.4s ease;
+}
+
+.chat-message.me {
+  justify-content: flex-end;
+}
+
+.chat-message.them {
+  justify-content: flex-start;
+}
+
 .bubble {
   position: relative;
   padding: 10px 12px;
@@ -22,6 +123,24 @@ body.dark .chat-message.them .bubble {
   background-color: #222;
 }
 
+/* Timestamp and status */
+.timestamp {
+  font-size: 0.75em;
+  color: #888;
+  margin-left: 8px;
+}
+
+.status {
+  font-size: 0.75em;
+  margin-left: 5px;
+  color: #888;
+}
+
+.status.seen {
+  color: #00ff99;
+}
+
+/* Hover actions */
 .hover-actions {
   display: none;
   margin-top: 5px;
@@ -33,6 +152,7 @@ body.dark .chat-message.them .bubble {
   gap: 5px;
 }
 
+/* Reactions and buttons */
 .reactions button,
 .action-btn {
   background: transparent;
@@ -54,10 +174,20 @@ body.dark .chat-message.them .bubble {
   font-size: 1.2em;
 }
 
-.fade-in {
-  animation: fadeIn 0.4s ease;
+/* Audio player */
+audio {
+  margin-top: 5px;
+  width: 100%;
 }
 
+/* Typing indicator */
+.typing-indicator {
+  font-style: italic;
+  margin-bottom: 10px;
+  color: #ccc;
+}
+
+/* Fade-in animation */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
