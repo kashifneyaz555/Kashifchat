@@ -21,15 +21,32 @@
     const chatBox = document.getElementById("chat-box");
     const notify = document.getElementById("notify");
 
-    socket.on("receive_message", data => {
-      const msg = document.createElement("div");
-      msg.textContent = `${data.username}: ${data.message}`;
-      chatBox.appendChild(msg);
-      chatBox.scrollTop = chatBox.scrollHeight;
-      notify.currentTime = 0;
-      notify.play().catch(() => {});
-    });
+   socket.on("receive_message", data => {
+  const msg = document.createElement("div");
+  msg.dataset.id = Date.now().toString(); // Unique ID for deletion
+  msg.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
 
+  if (data.username === "{{ username }}") {
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "🗑️";
+    delBtn.style.marginLeft = "10px";
+    delBtn.onclick = () => {
+      socket.emit("delete_message", { id: msg.dataset.id });
+      msg.remove();
+    };
+    msg.appendChild(delBtn);
+  }
+
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  notify.currentTime = 0;
+  notify.play().catch(() => {});
+});
+socket.on("remove_message", data => {
+  const msg = document.querySelector(`[data-id="${data.id}"]`);
+  if (msg) msg.remove();
+});
+ 
     function sendMessage() {
       const input = document.getElementById("message");
       const message = input.value.trim();
