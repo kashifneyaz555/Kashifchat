@@ -78,9 +78,14 @@ def handle_message(data):
         "username": session.get("username", "Anonymous"),
         "message": data["message"]
     }, broadcast=True)
+
 @socketio.on("delete_message")
 def handle_delete(data):
     emit("remove_message", {"id": data["id"]}, broadcast=True)
+
+@socketio.on("user_typing")
+def handle_typing(data):
+    emit("user_typing", {"username": data["username"]}, broadcast=True)
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)

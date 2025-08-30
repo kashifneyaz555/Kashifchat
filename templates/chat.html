@@ -9,6 +9,7 @@
   <div class="container">
     <h2>Welcome, {{ username }}</h2>
     <div id="chat-box"></div>
+    <div id="typing-indicator" style="margin-top: 10px; font-style: italic;"></div>
     <input type="text" id="message" placeholder="Type your message...">
     <button onclick="sendMessage()">Send</button>
     <a href="/logout">Logout</a>
@@ -20,33 +21,45 @@
     const socket = io();
     const chatBox = document.getElementById("chat-box");
     const notify = document.getElementById("notify");
+    const typingIndicator = document.getElementById("typing-indicator");
 
-   socket.on("receive_message", data => {
-  const msg = document.createElement("div");
-  msg.dataset.id = Date.now().toString(); // Unique ID for deletion
-  msg.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
+    socket.on("receive_message", data => {
+      const msg = document.createElement("div");
+      msg.dataset.id = Date.now().toString(); // Unique ID for deletion
+      msg.innerHTML = `<strong>${data.username}:</strong> ${data.message}`;
 
-  if (data.username === "{{ username }}") {
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "🗑️";
-    delBtn.style.marginLeft = "10px";
-    delBtn.onclick = () => {
-      socket.emit("delete_message", { id: msg.dataset.id });
-      msg.remove();
-    };
-    msg.appendChild(delBtn);
-  }
+      if (data.username === "{{ username }}") {
+        const delBtn = document.createElement("button");
+        delBtn.textContent = "🗑️";
+        delBtn.style.marginLeft = "10px";
+        delBtn.onclick = () => {
+          socket.emit("delete_message", { id: msg.dataset.id });
+        };
+        msg.appendChild(delBtn);
+      }
 
-  chatBox.appendChild(msg);
-  chatBox.scrollTop = chatBox.scrollHeight;
-  notify.currentTime = 0;
-  notify.play().catch(() => {});
-});
-socket.on("remove_message", data => {
-  const msg = document.querySelector(`[data-id="${data.id}"]`);
-  if (msg) msg.remove();
-});
- 
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      notify.currentTime = 0;
+      notify.play().catch(() => {});
+    });
+
+    socket.on("remove_message", data => {
+      const msg = document.querySelector(`[data-id="${data.id}"]`);
+      if (msg) msg.remove();
+    });
+
+    socket.on("user_typing", data => {
+      typingIndicator.textContent = `${data.username} is typing...`;
+      setTimeout(() => {
+        typingIndicator.textContent = "";
+      }, 1000);
+    });
+
+    document.getElementById("message").addEventListener("input", () => {
+      socket.emit("user_typing", { username: "{{ username }}" });
+    });
+
     function sendMessage() {
       const input = document.getElementById("message");
       const message = input.value.trim();
