@@ -31,3 +31,12 @@ button {
 button:hover {
   background-color: #ff6e70;
 }
+
+#chat-box {
+  height: 300px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+}

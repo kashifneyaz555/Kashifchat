@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request, redirect, session, url_for
+from flask_socketio import SocketIO, emit
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import os
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default_secret")
+socketio = SocketIO(app)
 
 # Initialize DB
 def init_db():
@@ -70,5 +72,12 @@ def logout():
     session.pop("username", None)
     return redirect("/login")
 
+@socketio.on("send_message")
+def handle_message(data):
+    emit("receive_message", {
+        "username": session.get("username", "Anonymous"),
+        "message": data["message"]
+    }, broadcast=True)
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    socketio.run(app, host="0.0.0.0", port=5000)sss

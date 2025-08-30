@@ -3,13 +3,12 @@
 <head>
   <title>KashifChat</title>
   <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
   <div class="container">
     <h2>Welcome, {{ username }}</h2>
-    <div id="chat-box">
-      <!-- Messages will appear here -->
-    </div>
+    <div id="chat-box"></div>
     <input type="text" id="message" placeholder="Type your message...">
     <button onclick="sendMessage()">Send</button>
     <a href="/logout">Logout</a>
@@ -18,11 +17,26 @@
   <audio id="notify" src="/static/notify.mp3" preload="auto"></audio>
 
   <script>
+    const socket = io();
+    const chatBox = document.getElementById("chat-box");
+    const notify = document.getElementById("notify");
+
+    socket.on("receive_message", data => {
+      const msg = document.createElement("div");
+      msg.textContent = `${data.username}: ${data.message}`;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      notify.currentTime = 0;
+      notify.play().catch(() => {});
+    });
+
     function sendMessage() {
-      const audio = document.getElementById("notify");
-      audio.currentTime = 0;
-      audio.play().catch(e => console.log("Audio blocked:", e));
-      // Add message logic here
+      const input = document.getElementById("message");
+      const message = input.value.trim();
+      if (message) {
+        socket.emit("send_message", { message });
+        input.value = "";
+      }
     }
   </script>
 </body>
