@@ -8,7 +8,7 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default_secret")
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode="threading")
 
 # Initialize DB
 def init_db():
@@ -82,16 +82,53 @@ def handle_message(data):
         "id": message_id,
         "username": session.get("username", "Anonymous"),
         "message": data["message"],
-        "timestamp": timestamp
+        "timestamp": timestamp,
+        "status": "sent"
     }, broadcast=True)
 
 @socketio.on("delete_message")
 def handle_delete(data):
     emit("remove_message", {"id": data["id"]}, broadcast=True)
 
+@socketio.on("edit_message")
+def handle_edit(data):
+    emit("update_message", {
+        "id": data["id"],
+        "new_message": data["new_message"]
+    }, broadcast=True)
+
+@socketio.on("message_seen")
+def handle_seen(data):
+    emit("message_seen", {"id": data["id"]}, broadcast=True)
+
 @socketio.on("user_typing")
 def handle_typing(data):
     emit("user_typing", {"username": data["username"]}, broadcast=True)
+
+@socketio.on("send_audio")
+def handle_audio(data):
+    audio_id = str(uuid.uuid4())
+    timestamp = datetime.now().strftime("%H:%M")
+    emit("receive_audio", {
+        "id": audio_id,
+        "username": session.get("username", "Anonymous"),
+        "audio_data": data["audio_data"],
+        "timestamp": timestamp
+    }, broadcast=True)
+
+@socketio.on("push_notify")
+def handle_push_notify(data):
+    emit("trigger_notification", {
+        "title": data["title"],
+        "body": data["body"]
+    }, broadcast=True)
+
+@socketio.on("profile_picture")
+def handle_profile_picture(data):
+    emit("profile_picture", {
+        "username": data["username"],
+        "avatar_url": data["avatar_url"]
+    }, broadcast=True)
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000)

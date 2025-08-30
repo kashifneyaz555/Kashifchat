@@ -40,3 +40,57 @@ button:hover {
   border-radius: 5px;
   margin-bottom: 10px;
 }
+
+/* Chat message styling */
+#chat-box div {
+  margin-bottom: 12px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  position: relative;
+}
+
+/* Avatar styling */
+#chat-box img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+/* Timestamp and status */
+#chat-box span {
+  font-size: 0.8em;
+  color: #ccc;
+}
+
+/.status {
+  margin-left: 8px;
+  font-size: 0.8em;
+  color: #ccc;
+}
+
+/.status.seen {
+  color: #00ff99;
+}
+
+/* Audio player */
+audio {
+  margin-top: 5px;
+  width: 100%;
+}
+
+/* Edit/Delete buttons */
+#chat-box button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1em;
+  margin-left: 5px;
+  cursor: pointer;
+}
+
+#chat-box button:hover {
+  color: #ffcccb;
+}

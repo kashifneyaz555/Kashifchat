@@ -10,8 +10,10 @@
     <h2>Welcome, {{ username }}</h2>
     <div id="chat-box"></div>
     <div id="typing-indicator" style="margin-top: 10px; font-style: italic;"></div>
+
     <input type="text" id="message" placeholder="Type your message...">
     <button onclick="sendMessage()">Send</button>
+    <input type="file" id="audio-upload" accept="audio/*">
     <a href="/logout">Logout</a>
   </div>
 
@@ -23,10 +25,22 @@
     const notify = document.getElementById("notify");
     const typingIndicator = document.getElementById("typing-indicator");
 
+    // Request notification permission
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+
     socket.on("receive_message", data => {
       const msg = document.createElement("div");
       msg.dataset.id = data.id;
-      msg.innerHTML = `<strong>${data.username}</strong> <span style="font-size: 0.8em; color: #ccc;">[${data.timestamp}]</span>: ${data.message}`;
+
+      msg.innerHTML = `
+        <img src="/static/default-avatar.png" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:5px;">
+        <strong>${data.username}</strong>
+        <span style="font-size: 0.8em; color: #ccc;">[${data.timestamp}]</span>:
+        <span class="msg-text">${data.message}</span>
+        <span class="status" style="font-size: 0.8em; color: gray;"> ✅</span>
+      `;
 
       if (data.username === "{{ username }}") {
         const delBtn = document.createElement("button");
@@ -35,18 +49,66 @@
         delBtn.onclick = () => {
           socket.emit("delete_message", { id: msg.dataset.id });
         };
+
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "✏️";
+        editBtn.style.marginLeft = "5px";
+        editBtn.onclick = () => {
+          const newText = prompt("Edit your message:", msg.querySelector(".msg-text").textContent);
+          if (newText) {
+            socket.emit("edit_message", { id: msg.dataset.id, new_message: newText });
+          }
+        };
+
         msg.appendChild(delBtn);
+        msg.appendChild(editBtn);
       }
 
       chatBox.appendChild(msg);
       chatBox.scrollTop = chatBox.scrollHeight;
       notify.currentTime = 0;
       notify.play().catch(() => {});
+
+      // Trigger push notification
+      if (Notification.permission === "granted" && data.username !== "{{ username }}") {
+        new Notification("New message from " + data.username, { body: data.message });
+      }
+
+      // Mark as seen
+      socket.emit("message_seen", { id: data.id });
+    });
+
+    socket.on("update_message", data => {
+      const msg = document.querySelector(`[data-id="${data.id}"]`);
+      if (msg) {
+        msg.querySelector(".msg-text").textContent = data.new_message;
+      }
     });
 
     socket.on("remove_message", data => {
       const msg = document.querySelector(`[data-id="${data.id}"]`);
       if (msg) msg.remove();
+    });
+
+    socket.on("message_seen", data => {
+      const msg = document.querySelector(`[data-id="${data.id}"]`);
+      if (msg) {
+        const status = msg.querySelector(".status");
+        if (status) status.textContent = " ✅✅";
+      }
+    });
+
+    socket.on("receive_audio", data => {
+      const msg = document.createElement("div");
+      msg.dataset.id = data.id;
+      msg.innerHTML = `
+        <img src="/static/default-avatar.png" style="width:24px; height:24px; border-radius:50%; vertical-align:middle; margin-right:5px;">
+        <strong>${data.username}</strong>
+        <span style="font-size: 0.8em; color: #ccc;">[${data.timestamp}]</span>:
+        <audio controls src="${data.audio_data}" style="margin-left:10px;"></audio>
+      `;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
     });
 
     socket.on("user_typing", data => {
@@ -58,6 +120,17 @@
 
     document.getElementById("message").addEventListener("input", () => {
       socket.emit("user_typing", { username: "{{ username }}" });
+    });
+
+    document.getElementById("audio-upload").addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          socket.emit("send_audio", { audio_data: reader.result });
+        };
+        reader.readAsDataURL(file);
+      }
     });
 
     function sendMessage() {
