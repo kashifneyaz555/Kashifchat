@@ -35,7 +35,6 @@
     const notify = document.getElementById("notify");
     const typingIndicator = document.getElementById("typing-indicator");
 
-    // Dark mode toggle
     const toggle = document.getElementById("dark-mode-toggle");
     if (localStorage.getItem("darkMode") === "true") {
       document.body.classList.add("dark");
@@ -60,48 +59,30 @@
           <span class="msg-text">${data.message}</span>
           <span class="timestamp">${data.timestamp}</span>
           <span class="status">✅</span>
-          <div class="reactions">
-            <button onclick="react('${data.id}', '👍')">👍</button>
-            <button onclick="react('${data.id}', '❤️')">❤️</button>
-            <button onclick="react('${data.id}', '😂')">😂</button>
-            <button onclick="react('${data.id}', '😮')">😮</button>
-            <button onclick="react('${data.id}', '😢')">😢</button>
+          <div class="hover-actions">
+            <div class="reactions">
+              <button onclick="react('${data.id}', '👍')">👍</button>
+              <button onclick="react('${data.id}', '❤️')">❤️</button>
+              <button onclick="react('${data.id}', '😂')">😂</button>
+              <button onclick="react('${data.id}', '😮')">😮</button>
+              <button onclick="react('${data.id}', '😢')">😢</button>
+            </div>
+            ${data.username === "{{ username }}" ? `
+              <button class="action-btn" onclick="editMessage('${data.id}')">✏️</button>
+              <button class="action-btn" onclick="deleteMessage('${data.id}')">🗑️</button>
+            ` : ""}
           </div>
         </div>
       `;
-
-      if (data.username === "{{ username }}") {
-        const delBtn = document.createElement("button");
-        delBtn.textContent = "🗑️";
-        delBtn.className = "action-btn";
-        delBtn.onclick = () => {
-          socket.emit("delete_message", { id: msg.dataset.id });
-        };
-
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "✏️";
-        editBtn.className = "action-btn";
-        editBtn.onclick = () => {
-          const newText = prompt("Edit your message:", msg.querySelector(".msg-text").textContent);
-          if (newText) {
-            socket.emit("edit_message", { id: msg.dataset.id, new_message: newText });
-          }
-        };
-
-        msg.querySelector(".bubble").appendChild(editBtn);
-        msg.querySelector(".bubble").appendChild(delBtn);
-      }
 
       msg.classList.add("fade-in");
       chatBox.appendChild(msg);
       chatBox.scrollTop = chatBox.scrollHeight;
       notify.currentTime = 0;
       notify.play().catch(() => {});
-
       if (Notification.permission === "granted" && data.username !== "{{ username }}") {
         new Notification("New message from " + data.username, { body: data.message });
       }
-
       socket.emit("message_seen", { id: data.id });
     });
 
@@ -181,6 +162,19 @@
         reaction.className = "reaction";
         bubble.appendChild(reaction);
       }
+    }
+
+    function editMessage(id) {
+      const msg = document.querySelector(`[data-id="${id}"]`);
+      const currentText = msg.querySelector(".msg-text").textContent;
+      const newText = prompt("Edit your message:", currentText);
+      if (newText) {
+        socket.emit("edit_message", { id, new_message: newText });
+      }
+    }
+
+    function deleteMessage(id) {
+      socket.emit("delete_message", { id });
     }
   </script>
 </body>
