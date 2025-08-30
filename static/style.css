@@ -1,80 +1,64 @@
-body {
-  margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(to right, #1e3c72, #2a5298, #ff4e50);
-  color: white;
+.bubble {
+  position: relative;
+  padding: 10px 12px;
+  border-radius: 10px;
+  max-width: 75%;
+  background-color: #DCF8C6;
+  color: black;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   transition: background 0.3s ease;
 }
 
-body.dark {
-  background: #121212;
-  color: #e0e0e0;
+.chat-message.them .bubble {
+  background-color: #ffffff;
 }
 
-.container {
-  max-width: 600px;
-  margin: 80px auto 50px;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 20px;
-  border-radius: 10px;
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+body.dark .bubble {
+  background-color: #333;
+  color: #eee;
 }
 
-input, button {
-  width: 100%;
-  padding: 10px;
-  margin: 10px 0;
-  border: none;
-  border-radius: 5px;
+body.dark .chat-message.them .bubble {
+  background-color: #222;
 }
 
-button {
-  background-color: #ff4e50;
-  color: white;
-  cursor: pointer;
+.hover-actions {
+  display: none;
+  margin-top: 5px;
 }
 
-button:hover {
-  background-color: #ff6e70;
-}
-
-.header {
-  position: fixed;
-  top: 0;
-  width: 100%;
-  max-width: 600px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.1);
-  padding: 10px 20px;
+.bubble:hover .hover-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  z-index: 10;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
-.header-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-}
-
-.header-info {
-  flex-grow: 1;
-  margin-left: 10px;
-}
-
-.status-text {
-  font-size: 0.8em;
-  color: #ccc;
-}
-
-.dark-toggle {
+.reactions button,
+.action-btn {
+  background: transparent;
+  border: none;
   font-size: 1.2em;
   cursor: pointer;
+  color: #666;
+  transition: transform 0.2s ease;
 }
 
-#chat-box {
-  height: 300px;
-  overflow-y: auto;
+.reactions button:hover,
+.action-btn:hover {
+  transform: scale(1.2);
+  color: #ff4e50;
+}
+
+.reaction {
+  margin-left: 5px;
+  font-size: 1.2em;
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
