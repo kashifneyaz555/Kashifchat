@@ -1,13 +1,13 @@
 body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;
-  background: #d0e7ff; /* Light blue background */
+  background: #d0e7ff;
   color: black;
   transition: background 0.3s ease, color 0.3s ease;
 }
 
 body.dark {
-  background: #000000; /* Full black background in dark mode */
+  background: #000000;
   color: #e0e0e0;
 }
 
@@ -140,6 +140,10 @@ body.dark .chat-message.them .bubble {
   color: #00ff99;
 }
 
+.status.seen-purple {
+  color: #a020f0;
+}
+
 /* Hover actions */
 .hover-actions {
   display: none;
@@ -180,11 +184,42 @@ audio {
   width: 100%;
 }
 
+/* Video player */
+video {
+  margin-top: 5px;
+  width: 100%;
+  border-radius: 8px;
+}
+
+/* File download link */
+a.download-link {
+  display: inline-block;
+  margin-top: 5px;
+  color: #0077cc;
+  text-decoration: none;
+}
+
+a.download-link:hover {
+  text-decoration: underline;
+}
+
 /* Typing indicator */
 .typing-indicator {
   font-style: italic;
   margin-bottom: 10px;
   color: #ccc;
+}
+
+/* System messages (logout, participants) */
+.system-message {
+  font-size: 0.8em;
+  color: #aaa;
+  text-align: center;
+  margin: 5px 0;
+}
+
+body.dark .system-message {
+  color: #888;
 }
 
 /* Fade-in animation */

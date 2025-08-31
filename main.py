@@ -5,10 +5,14 @@ import sqlite3
 import os
 import uuid
 from datetime import datetime
+import pytz
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "default_secret")
 socketio = SocketIO(app, async_mode="threading")
+
+active_users = set()
+user_active_view = {}
 
 # Initialize DB
 def init_db():
@@ -17,12 +21,17 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        avatar TEXT
     )''')
     conn.commit()
     conn.close()
 
 init_db()
+
+def get_ist_timestamp():
+    ist = pytz.timezone('Asia/Kolkata')
+    return datetime.now(ist).strftime('%H:%M')
 
 @app.route("/")
 def home():
@@ -35,10 +44,16 @@ def register():
     if request.method == "POST":
         username = request.form["username"]
         password = generate_password_hash(request.form["password"])
+        avatar = request.files.get("avatar")
+        avatar_path = None
+        if avatar:
+            avatar_filename = f"{uuid.uuid4().hex}_{avatar.filename}"
+            avatar_path = f"/static/avatars/{avatar_filename}"
+            avatar.save(f"static/avatars/{avatar_filename}")
         try:
             conn = sqlite3.connect("users.db")
             c = conn.cursor()
-            c.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, password))
+            c.execute("INSERT INTO users (username, password, avatar) VALUES (?, ?, ?)", (username, password, avatar_path))
             conn.commit()
             conn.close()
             return redirect("/login")
@@ -58,6 +73,7 @@ def login():
         conn.close()
         if user and check_password_hash(user[0], password):
             session["username"] = username
+            active_users.add(username)
             return redirect("/chat")
         else:
             return "Invalid credentials!"
@@ -71,19 +87,25 @@ def chat():
 
 @app.route("/logout")
 def logout():
+    username = session.get("username")
+    if username:
+        active_users.discard(username)
+        socketio.emit("user_left", {"username": username}, broadcast=True)
     session.pop("username", None)
     return redirect("/login")
 
 @socketio.on("send_message")
 def handle_message(data):
     message_id = str(uuid.uuid4())
-    timestamp = datetime.now().strftime("%H:%M")
+    timestamp = get_ist_timestamp()
+    username = session.get("username", "Anonymous")
+    seen_status = "✅" if user_active_view.get(username) else "✅"
     emit("receive_message", {
         "id": message_id,
-        "username": session.get("username", "Anonymous"),
+        "username": username,
         "message": data["message"],
         "timestamp": timestamp,
-        "status": "sent"
+        "status": seen_status
     }, broadcast=True)
 
 @socketio.on("delete_message")
@@ -108,11 +130,34 @@ def handle_typing(data):
 @socketio.on("send_audio")
 def handle_audio(data):
     audio_id = str(uuid.uuid4())
-    timestamp = datetime.now().strftime("%H:%M")
+    timestamp = get_ist_timestamp()
     emit("receive_audio", {
         "id": audio_id,
         "username": session.get("username", "Anonymous"),
         "audio_data": data["audio_data"],
+        "timestamp": timestamp
+    }, broadcast=True)
+
+@socketio.on("send_video")
+def handle_video(data):
+    video_id = str(uuid.uuid4())
+    timestamp = get_ist_timestamp()
+    emit("receive_video", {
+        "id": video_id,
+        "username": session.get("username", "Anonymous"),
+        "video_data": data["video_data"],
+        "timestamp": timestamp
+    }, broadcast=True)
+
+@socketio.on("send_file")
+def handle_file(data):
+    file_id = str(uuid.uuid4())
+    timestamp = get_ist_timestamp()
+    emit("receive_file", {
+        "id": file_id,
+        "username": session.get("username", "Anonymous"),
+        "file_name": data["file_name"],
+        "file_url": data["file_url"],
         "timestamp": timestamp
     }, broadcast=True)
 
@@ -129,6 +174,14 @@ def handle_profile_picture(data):
         "username": data["username"],
         "avatar_url": data["avatar_url"]
     }, broadcast=True)
+
+@socketio.on("active_view")
+def handle_active_view(data):
+    user_active_view[data["username"]] = True
+
+@socketio.on("get_participants")
+def handle_get_participants():
+    emit("participants_list", {"users": list(active_users)}, room=request.sid)
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000, allow_unsafe_werkzeug=True)

@@ -12,6 +12,7 @@
       <h2>KashifChat</h2>
       <p class="status-text">Online</p>
     </div>
+    <button id="participants-btn" title="View participants">👥</button>
     <label class="dark-toggle">
       🌙 <input type="checkbox" id="dark-mode-toggle">
     </label>
@@ -19,11 +20,14 @@
 
   <div class="container">
     <div id="chat-box"></div>
+    <div id="participants-list" style="display:none;" class="system-message"></div>
     <div id="typing-indicator" class="typing-indicator"></div>
 
     <input type="text" id="message" placeholder="Type your message...">
     <button onclick="sendMessage()">Send</button>
     <input type="file" id="audio-upload" accept="audio/*">
+    <input type="file" id="video-upload" accept="video/*">
+    <input type="file" id="file-upload" accept=".pdf,.doc,.docx,.txt,.zip">
     <a href="/logout">Logout</a>
   </div>
 
@@ -34,6 +38,7 @@
     const chatBox = document.getElementById("chat-box");
     const notify = document.getElementById("notify");
     const typingIndicator = document.getElementById("typing-indicator");
+    const participantsList = document.getElementById("participants-list");
 
     const toggle = document.getElementById("dark-mode-toggle");
     if (localStorage.getItem("darkMode") === "true") {
@@ -45,6 +50,12 @@
       localStorage.setItem("darkMode", toggle.checked);
     });
 
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        socket.emit("active_view", { username: "{{ username }}" });
+      }
+    });
+
     if ("Notification" in window && Notification.permission !== "granted") {
       Notification.requestPermission();
     }
@@ -54,11 +65,13 @@
       msg.classList.add("chat-message", data.username === "{{ username }}" ? "me" : "them");
       msg.dataset.id = data.id;
 
+      const tickClass = data.status === "✅✅" ? "seen-purple" : "";
+
       msg.innerHTML = `
         <div class="bubble">
           <span class="msg-text">${data.message}</span>
           <span class="timestamp">${data.timestamp}</span>
-          <span class="status">✅</span>
+          <span class="status ${tickClass}">${data.status}</span>
           <div class="hover-actions">
             <div class="reactions">
               <button onclick="react('${data.id}', '👍')">👍</button>
@@ -102,8 +115,10 @@
       const msg = document.querySelector(`[data-id="${data.id}"]`);
       if (msg) {
         const status = msg.querySelector(".status");
-        if (status) status.textContent = "✅✅";
-        status.classList.add("seen");
+        if (status) {
+          status.textContent = "✅✅";
+          status.classList.add("seen-purple");
+        }
       }
     });
 
@@ -122,12 +137,58 @@
       chatBox.scrollTop = chatBox.scrollHeight;
     });
 
+    socket.on("receive_video", data => {
+      const msg = document.createElement("div");
+      msg.classList.add("chat-message", data.username === "{{ username }}" ? "me" : "them");
+      msg.dataset.id = data.id;
+      msg.innerHTML = `
+        <div class="bubble">
+          <video controls width="100%" src="${data.video_data}"></video>
+          <span class="timestamp">${data.timestamp}</span>
+        </div>
+      `;
+      msg.classList.add("fade-in");
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
+    socket.on("receive_file", data => {
+      const msg = document.createElement("div");
+      msg.classList.add("chat-message", data.username === "{{ username }}" ? "me" : "them");
+      msg.dataset.id = data.id;
+      msg.innerHTML = `
+        <div class="bubble">
+          <a href="${data.file_url}" download>${data.file_name}</a>
+          <span class="timestamp">${data.timestamp}</span>
+        </div>
+      `;
+      msg.classList.add("fade-in");
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+
     socket.on("user_typing", data => {
       typingIndicator.textContent = `${data.username} is typing...`;
       setTimeout(() => {
         typingIndicator.textContent = "";
       }, 1000);
     });
+
+    socket.on("user_left", data => {
+      const notice = document.createElement("div");
+      notice.className = "system-message";
+      notice.textContent = `${data.username} logged out`;
+      chatBox.appendChild(notice);
+    });
+
+    socket.on("participants_list", data => {
+      participantsList.innerHTML = "<strong>Participants:</strong><br>" + data.users.map(u => `• ${u}`).join("<br>");
+      participantsList.style.display = "block";
+    });
+
+    document.getElementById("participants-btn").onclick = () => {
+      socket.emit("get_participants");
+    };
 
     document.getElementById("message").addEventListener("input", () => {
       socket.emit("user_typing", { username: "{{ username }}" });
@@ -144,38 +205,20 @@
       }
     });
 
-    function sendMessage() {
-      const input = document.getElementById("message");
-      const message = input.value.trim();
-      if (message) {
-        socket.emit("send_message", { message });
-        input.value = "";
+    document.getElementById("video-upload").addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          socket.emit("send_video", { video_data: reader.result });
+        };
+        reader.readAsDataURL(file);
       }
-    }
+    });
 
-    function react(id, emoji) {
-      const msg = document.querySelector(`[data-id="${id}"]`);
-      if (msg) {
-        const bubble = msg.querySelector(".bubble");
-        const reaction = document.createElement("span");
-        reaction.textContent = emoji;
-        reaction.className = "reaction";
-        bubble.appendChild(reaction);
-      }
-    }
-
-    function editMessage(id) {
-      const msg = document.querySelector(`[data-id="${id}"]`);
-      const currentText = msg.querySelector(".msg-text").textContent;
-      const newText = prompt("Edit your message:", currentText);
-      if (newText) {
-        socket.emit("edit_message", { id, new_message: newText });
-      }
-    }
-
-    function deleteMessage(id) {
-      socket.emit("delete_message", { id });
-    }
-  </script>
-</body>
-</html>
+    document.getElementById("file-upload").addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          socket.emit("send_file", {
